@@ -23,10 +23,10 @@
                   <option value="">新增地址</option>
                   <option
                       v-for="address in userAddresses"
-                      :key="address.id"
-                      :value="address.id"
+                      :key="address.addressId"
+                      :value="address.addressId"
                   >
-                    {{ address.province }}{{ address.city }}{{ address.district }} {{ address.detailAddress }} ({{ address.receiverName }})
+                    {{ formatAddress(address) }}
                   </option>
                 </select>
                 <button @click="openAddressDialog" class="add-address-btn">新增地址</button>
@@ -37,33 +37,38 @@
             <div class="address-form" v-if="!selectedAddressId || selectedAddressId === ''">
               <div class="form-row">
                 <div class="form-group">
-                  <label for="receiverName">收货人姓名</label>
+                  <label for="receiverName">收货人姓名 *</label>
                   <input
                       type="text"
                       id="receiverName"
                       v-model="formData.receiverName"
                       placeholder="请输入收货人姓名"
+                      :class="{ 'error': formErrors.receiverName }"
                   >
+                  <div v-if="formErrors.receiverName" class="error-message">{{ formErrors.receiverName }}</div>
                 </div>
 
                 <div class="form-group">
-                  <label for="receiverPhone">联系电话</label>
+                  <label for="receiverPhone">联系电话 *</label>
                   <input
                       type="tel"
                       id="receiverPhone"
                       v-model="formData.receiverPhone"
                       placeholder="请输入联系电话"
+                      :class="{ 'error': formErrors.receiverPhone }"
                   >
+                  <div v-if="formErrors.receiverPhone" class="error-message">{{ formErrors.receiverPhone }}</div>
                 </div>
               </div>
 
               <div class="form-row">
                 <div class="form-group">
-                  <label for="province">省份</label>
+                  <label for="province">省份 *</label>
                   <select
                       id="province"
                       v-model="formData.province"
                       @change="onProvinceChange"
+                      :class="{ 'error': formErrors.province }"
                   >
                     <option value="">请选择省份</option>
                     <option
@@ -74,15 +79,17 @@
                       {{ province.name }}
                     </option>
                   </select>
+                  <div v-if="formErrors.province" class="error-message">{{ formErrors.province }}</div>
                 </div>
 
                 <div class="form-group">
-                  <label for="city">城市</label>
+                  <label for="city">城市 *</label>
                   <select
                       id="city"
                       v-model="formData.city"
                       @change="onCityChange"
                       :disabled="!formData.province"
+                      :class="{ 'error': formErrors.city }"
                   >
                     <option value="">请选择城市</option>
                     <option
@@ -93,15 +100,17 @@
                       {{ city.name }}
                     </option>
                   </select>
+                  <div v-if="formErrors.city" class="error-message">{{ formErrors.city }}</div>
                 </div>
 
                 <div class="form-group">
-                  <label for="district">区县</label>
+                  <label for="district">区县 *</label>
                   <select
                       id="district"
                       v-model="formData.district"
                       @change="onDistrictChange"
                       :disabled="!formData.city"
+                      :class="{ 'error': formErrors.district }"
                   >
                     <option value="">请选择区县</option>
                     <option
@@ -112,17 +121,20 @@
                       {{ district.name }}
                     </option>
                   </select>
+                  <div v-if="formErrors.district" class="error-message">{{ formErrors.district }}</div>
                 </div>
               </div>
 
               <div class="form-group">
-                <label for="detailAddress">详细地址</label>
+                <label for="detailAddress">详细地址 *</label>
                 <textarea
                     id="detailAddress"
                     v-model="formData.detailAddress"
                     placeholder="请输入详细地址"
                     rows="3"
+                    :class="{ 'error': formErrors.detailAddress }"
                 ></textarea>
+                <div v-if="formErrors.detailAddress" class="error-message">{{ formErrors.detailAddress }}</div>
               </div>
             </div>
 
@@ -131,7 +143,7 @@
               <div class="address-info">
                 <p><strong>收货人：</strong>{{ selectedAddress.receiverName }}</p>
                 <p><strong>电话：</strong>{{ selectedAddress.receiverPhone }}</p>
-                <p><strong>地址：</strong>{{ selectedAddress.province }}{{ selectedAddress.city }}{{ selectedAddress.district }} {{ selectedAddress.detailAddress }}</p>
+                <p><strong>地址：</strong>{{ formatFullAddress(selectedAddress) }}</p>
               </div>
               <button @click="editAddress" class="edit-address-btn">修改地址</button>
             </div>
@@ -206,10 +218,10 @@
 
           <button
               @click="submitOrder"
-              :disabled="!isFormValid"
+              :disabled="isSubmitting"
               class="submit-order-btn"
           >
-            提交订单
+            {{ isSubmitting ? '提交中...' : '提交订单' }}
           </button>
         </div>
       </div>
@@ -252,7 +264,9 @@
                   id="dialogReceiverName"
                   v-model="formData.receiverName"
                   placeholder="请输入收货人姓名"
+                  :class="{ 'error': formErrors.receiverName }"
               >
+              <div v-if="formErrors.receiverName" class="error-message">{{ formErrors.receiverName }}</div>
             </div>
 
             <div class="form-group">
@@ -262,7 +276,9 @@
                   id="dialogReceiverPhone"
                   v-model="formData.receiverPhone"
                   placeholder="请输入联系电话"
+                  :class="{ 'error': formErrors.receiverPhone }"
               >
+              <div v-if="formErrors.receiverPhone" class="error-message">{{ formErrors.receiverPhone }}</div>
             </div>
           </div>
 
@@ -273,6 +289,7 @@
                   id="dialogProvince"
                   v-model="formData.province"
                   @change="onProvinceChange"
+                  :class="{ 'error': formErrors.province }"
               >
                 <option value="">请选择省份</option>
                 <option
@@ -283,6 +300,7 @@
                   {{ province.name }}
                 </option>
               </select>
+              <div v-if="formErrors.province" class="error-message">{{ formErrors.province }}</div>
             </div>
 
             <div class="form-group">
@@ -292,6 +310,7 @@
                   v-model="formData.city"
                   @change="onCityChange"
                   :disabled="!formData.province"
+                  :class="{ 'error': formErrors.city }"
               >
                 <option value="">请选择城市</option>
                 <option
@@ -302,6 +321,7 @@
                   {{ city.name }}
                 </option>
               </select>
+              <div v-if="formErrors.city" class="error-message">{{ formErrors.city }}</div>
             </div>
 
             <div class="form-group">
@@ -311,6 +331,7 @@
                   v-model="formData.district"
                   @change="onDistrictChange"
                   :disabled="!formData.city"
+                  :class="{ 'error': formErrors.district }"
               >
                 <option value="">请选择区县</option>
                 <option
@@ -321,6 +342,7 @@
                   {{ district.name }}
                 </option>
               </select>
+              <div v-if="formErrors.district" class="error-message">{{ formErrors.district }}</div>
             </div>
           </div>
 
@@ -331,19 +353,26 @@
                 v-model="formData.detailAddress"
                 placeholder="请输入详细地址"
                 rows="3"
+                :class="{ 'error': formErrors.detailAddress }"
             ></textarea>
+            <div v-if="formErrors.detailAddress" class="error-message">{{ formErrors.detailAddress }}</div>
           </div>
         </div>
 
         <div class="dialog-actions">
-          <button @click="closeAddressDialog" class="secondary-btn">
+          <button @click="closeAddressDialog" class="secondary-btn" :disabled="isSavingAddress">
             取消
           </button>
-          <button @click="saveAddress" class="primary-btn">
-            保存地址
+          <button @click="saveAddress" class="primary-btn" :disabled="isSavingAddress">
+            {{ isSavingAddress ? '保存中...' : '保存地址' }}
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- 加载提示 -->
+    <div v-if="isLoading" class="loading-overlay">
+      <div class="loading-spinner"></div>
     </div>
   </div>
 </template>
@@ -360,6 +389,7 @@ export default {
       userAddresses: [],
       selectedAddressId: '',
       selectedAddress: null,
+      currentAddress: null,  //用于编辑操作前只保存当前地址数据
       areaData: [],
       provinces: [],
       cities: [],
@@ -376,12 +406,23 @@ export default {
         detailAddress: '',
         paymentMethod: 'alipay'
       },
+      formErrors: {
+        receiverName: '',
+        receiverPhone: '',
+        province: '',
+        city: '',
+        district: '',
+        detailAddress: ''
+      },
       shippingFee: 0,
       showConfirmDialog: false,
       showAddressDialog: false,
       isEditingAddress: false,
       editingAddressId: null,
-      orderNumber: ''
+      orderNumber: '',
+      isLoading: false,
+      isSubmitting: false,
+      isSavingAddress: false
     }
   },
 
@@ -418,6 +459,16 @@ export default {
   },
 
   methods: {
+    // 格式化地址显示
+    formatAddress(address) {
+      return `${address.province}${address.city}${address.district} ${address.detailAddress} (${address.receiverName})`;
+    },
+
+    // 格式化完整地址
+    formatFullAddress(address) {
+      return `${address.province}${address.city}${address.district} ${address.detailAddress}`;
+    },
+
     getSpecsText(specifications) {
       if (!specifications || specifications.length === 0) return ''
       return specifications.map(spec => `${spec.specName}: ${spec.value}`).join(', ')
@@ -452,11 +503,15 @@ export default {
     },
 
     async loadUserData() {
+      this.isLoading = true;
       try {
         await this.loadUserAddresses();
         await this.loadAreaData();
       } catch (error) {
         console.error('加载用户数据失败:', error);
+        this.$message?.error('加载数据失败，请刷新页面重试');
+      } finally {
+        this.isLoading = false;
       }
     },
 
@@ -468,18 +523,55 @@ export default {
 
           if (this.userAddresses.length > 0) {
             const defaultAddress = this.userAddresses.find(addr => addr.isDefault) || this.userAddresses[0];
-            this.selectedAddressId = defaultAddress.id;
+            this.selectedAddressId = defaultAddress.addressId;
             this.selectedAddress = defaultAddress;
+
+            // 预加载选中地址对应的省市区数据
+            await this.preloadSelectedAddressData(defaultAddress);
           } else {
             // 用户没有收货地址，显示创建地址弹窗
-            this.showAddressDialog = true;
-            this.isEditingAddress = false;
-            this.editingAddressId = null;
-            this.resetAddressForm();
+            this.$nextTick(() => {
+              this.openAddressDialog();
+            });
           }
         }
       } catch (error) {
         console.error('加载用户地址失败:', error);
+        throw error;
+      }
+    },
+
+    // 预加载选中地址的省市区数据
+    async preloadSelectedAddressData(address) {
+      if (!address) return;
+
+      try {
+        // 加载所有地区数据
+        const result = await apiRequest.get("/api/area_data");
+        if (result.code === 0) {
+          this.areaData = result.data;
+          this.provinces = this.areaData.filter(item => item.level === 1);
+
+          // 根据选中地址的省份名称找到对应省份
+          const selectedProvince = this.provinces.find(province => province.name === address.province);
+          if (selectedProvince) {
+            // 加载城市数据
+            this.cities = this.areaData.filter(item =>
+                item.level === 2 && item.parentCode === selectedProvince.code
+            );
+
+            // 根据选中地址的城市名称找到对应城市
+            const selectedCity = this.cities.find(city => city.name === address.city);
+            if (selectedCity) {
+              // 加载区县数据
+              this.districts = this.areaData.filter(item =>
+                  item.level === 3 && item.parentCode === selectedCity.code
+              );
+            }
+          }
+        }
+      } catch (error) {
+        console.error('预加载地址数据失败:', error);
       }
     },
 
@@ -489,24 +581,31 @@ export default {
         const result = await apiRequest.get("/api/area_data");
         if (result.code === 0) {
           this.areaData = result.data;
-
           // 构建省份列表 (level = 1)
           this.provinces = this.areaData.filter(item => item.level === 1);
         }
       } catch (error) {
         console.error('加载省市区数据失败:', error);
+        throw error;
       }
     },
 
     // 省份变化时加载城市数据
-    onProvinceChange() {
+    onProvinceChange(clear=true) {
+      // 清除相关错误信息
+      this.formErrors.province = '';
+      this.formErrors.city = '';
+      this.formErrors.district = '';
+
       // 重置城市和区县相关数据
-      this.formData.city = '';
-      this.formData.cityId = '';
-      this.formData.district = '';
-      this.formData.districtId = '';
-      this.cities = [];
-      this.districts = [];
+      if(clear){
+        this.formData.city = '';
+        this.formData.cityId = 0;
+        this.formData.district = '';
+        this.formData.districtId = 0;
+        this.cities = [];
+        this.districts = [];
+      }
 
       if (!this.formData.province) return;
 
@@ -524,11 +623,17 @@ export default {
     },
 
     // 城市变化时加载区县数据
-    onCityChange() {
+    onCityChange(clear=true) {
+      // 清除相关错误信息
+      this.formErrors.city = '';
+      this.formErrors.district = '';
+
       // 重置区县相关数据
-      this.formData.district = '';
-      this.formData.districtId = '';
-      this.districts = [];
+      if(clear){
+        this.formData.district = '';
+        this.formData.districtId = 0;
+        this.districts = [];
+      }
 
       if (!this.formData.city) return;
 
@@ -547,8 +652,11 @@ export default {
 
     // 区县变化时保存区县id
     onDistrictChange() {
+      // 清除相关错误信息
+      this.formErrors.district = '';
+
       if (!this.formData.district) {
-        this.formData.districtId = '';
+        this.formData.districtId = 0;
         return;
       }
 
@@ -563,38 +671,73 @@ export default {
     onAddressChange() {
       if (this.selectedAddressId) {
         this.selectedAddress = this.userAddresses.find(addr => addr.id === this.selectedAddressId);
+        // 当切换地址时，预加载对应的省市区数据
+        this.preloadSelectedAddressData(this.selectedAddress);
       } else {
         this.selectedAddress = null;
-        this.formData.receiverName = '';
-        this.formData.receiverPhone = '';
-        this.formData.province = '';
-        this.formData.provinceId = '';
-        this.formData.city = '';
-        this.formData.cityId = '';
-        this.formData.district = '';
-        this.formData.districtId = '';
-        this.formData.detailAddress = '';
+        this.resetAddressForm();
       }
     },
 
     editAddress() {
+      if (!this.selectedAddress) {
+          return;
+      }
+      // 保存当前地址信息用于填充表单
+      this.currentAddress = this.selectedAddress;
+
+      // 清空选中地址，这样会显示地址编辑表单
       this.selectedAddressId = '';
       this.selectedAddress = null;
 
-      if (this.selectedAddress) {
-        this.formData.receiverName = this.selectedAddress.receiverName;
-        this.formData.receiverPhone = this.selectedAddress.receiverPhone;
-        this.formData.province = this.selectedAddress.province;
-        this.formData.provinceId = this.selectedAddress.provinceId || '';
-        this.formData.city = this.selectedAddress.city;
-        this.formData.cityId = this.selectedAddress.cityId || '';
-        this.formData.district = this.selectedAddress.district;
-        this.formData.districtId = this.selectedAddress.districtId || '';
-        this.formData.detailAddress = this.selectedAddress.detailAddress;
+      // 使用当前地址信息填充表单
+      this.editingAddressId = this.currentAddress.addressId;
+      this.formData.receiverName = this.currentAddress.receiverName;
+      this.formData.receiverPhone = this.currentAddress.receiverPhone;
+      this.formData.province = this.currentAddress.province;
+      this.formData.provinceId = this.currentAddress.provinceId || 0;
+      this.formData.city = this.currentAddress.city;
+      this.formData.cityId = this.currentAddress.cityId || 0;
+      this.formData.district = this.currentAddress.district;
+      this.formData.districtId = this.currentAddress.districtId || 0;
+      this.formData.detailAddress = this.currentAddress.detailAddress;
 
-        // 重新加载城市和区县数据以匹配选中的省份
-        this.onProvinceChange();
-        this.onCityChange();
+
+      // 设置编辑状态
+      this.isEditingAddress = true;
+
+      // 打开弹窗
+      this.showAddressDialog = true;
+
+      // 预加载省市区数据以确保下拉框正确显示
+      this.onProvinceChange(false);
+      this.onCityChange(false);
+    },
+
+    // 新增方法：取消编辑地址
+    cancelEditAddress() {
+      // 恢复之前选中的地址
+      this.selectedAddressId = this.currentAddress.addressId;
+      this.selectedAddress = this.currentAddress;
+
+      // 清空之前保存的地址
+      this.currentAddress = null;
+
+      // 重置表单
+      this.resetAddressForm();
+    },
+
+    // 修改 closeAddressDialog 方法
+    closeAddressDialog() {
+      this.showAddressDialog = false;
+      this.resetAddressForm();
+      this.clearFormErrors();
+
+      // 如果是在编辑模式下关闭弹窗，恢复之前选中的地址
+      if (this.isEditingAddress && this.currentAddress) {
+        this.selectedAddressId = this.currentAddress.addressId;
+        this.selectedAddress = this.currentAddress;
+        this.currentAddress = null;
       }
     },
 
@@ -608,37 +751,79 @@ export default {
       this.isEditingAddress = false;
       this.editingAddressId = null;
       this.resetAddressForm();
+      this.clearFormErrors();
     },
 
-    closeAddressDialog() {
-      this.showAddressDialog = false;
-      this.resetAddressForm();
-    },
 
     resetAddressForm() {
       this.formData.receiverName = '';
       this.formData.receiverPhone = '';
       this.formData.province = '';
-      this.formData.provinceId = '';
+      this.formData.provinceId = 0;
       this.formData.city = '';
-      this.formData.cityId = '';
+      this.formData.cityId = 0;
       this.formData.district = '';
-      this.formData.districtId = '';
+      this.formData.districtId = 0;
       this.formData.detailAddress = '';
       this.cities = [];
       this.districts = [];
     },
 
+    clearFormErrors() {
+      Object.keys(this.formErrors).forEach(key => {
+        this.formErrors[key] = '';
+      });
+    },
+
+    validateForm() {
+      this.clearFormErrors();
+      let isValid = true;
+
+      if (!this.formData.receiverName.trim()) {
+        this.formErrors.receiverName = '请输入收货人姓名';
+        isValid = false;
+      }
+
+      if (!this.formData.receiverPhone.trim()) {
+        this.formErrors.receiverPhone = '请输入联系电话';
+        isValid = false;
+      } else if (!/^1[3-9]\d{9}$/.test(this.formData.receiverPhone)) {
+        this.formErrors.receiverPhone = '请输入正确的手机号码';
+        isValid = false;
+      }
+
+      if (!this.formData.province) {
+        this.formErrors.province = '请选择省份';
+        isValid = false;
+      }
+
+      if (!this.formData.city) {
+        this.formErrors.city = '请选择城市';
+        isValid = false;
+      }
+
+      if (!this.formData.district) {
+        this.formErrors.district = '请选择区县';
+        isValid = false;
+      }
+
+      if (!this.formData.detailAddress.trim()) {
+        this.formErrors.detailAddress = '请输入详细地址';
+        isValid = false;
+      }
+
+      return isValid;
+    },
+
     async saveAddress() {
-      // 验证表单
-      if (!this.isFormValid) {
-        alert('请填写完整的收货信息');
+      if (!this.validateForm()) {
         return;
       }
 
+      this.isSavingAddress = true;
       try {
         const addressData = {
-          addressId:this.editingAddressId,
+          addressId: this.editingAddressId,
           receiverName: this.formData.receiverName,
           receiverPhone: this.formData.receiverPhone,
           province: this.formData.province,
@@ -664,48 +849,30 @@ export default {
           this.closeAddressDialog();
           await this.loadUserAddresses();
 
-          if (this.userAddresses.length === 0 && result.data) {
+          if (this.userAddresses.length > 0 && result.data) {
             this.selectedAddressId = result.data.id;
             this.selectedAddress = result.data;
           }
 
-          alert(this.isEditingAddress ? '地址更新成功' : '地址创建成功');
+          this.$message?.success(this.isEditingAddress ? '地址更新成功' : '地址创建成功');
         } else {
-          alert('地址保存失败：' + result.msg);
+          this.$message?.error('地址保存失败：' + result.msg);
         }
       } catch (error) {
         console.error('保存地址失败:', error);
-        alert('地址保存失败，请重试');
+        this.$message?.error('地址保存失败，请重试');
+      } finally {
+        this.isSavingAddress = false;
       }
     },
 
-    editExistingAddress(address) {
-      this.showAddressDialog = true;
-      this.isEditingAddress = true;
-      this.editingAddressId = address.id;
-
-      this.formData.receiverName = address.receiverName;
-      this.formData.receiverPhone = address.receiverPhone;
-      this.formData.province = address.province;
-      this.formData.provinceId = address.provinceId || '';
-      this.formData.city = address.city;
-      this.formData.cityId = address.cityId || '';
-      this.formData.district = address.district;
-      this.formData.districtId = address.districtId || '';
-      this.formData.detailAddress = address.detailAddress;
-
-      this.onProvinceChange();
-      this.onCityChange();
-      // 需要触发区县change事件来设置districtId
-      this.onDistrictChange();
-    },
 
     async submitOrder() {
-      if (!this.isFormValid) {
-        alert('请填写完整的收货信息')
-        return
+      if (!this.validateForm() && !this.selectedAddressId) {
+        return;
       }
 
+      this.isSubmitting = true;
       try {
         const orderData = {
           items: this.cart.map(item => ({
@@ -738,11 +905,13 @@ export default {
           const event = new CustomEvent('cart-updated')
           document.dispatchEvent(event);
         } else {
-          alert('订单提交失败：' + result.msg);
+          this.$message?.error('订单提交失败：' + result.msg);
         }
       } catch (error) {
         console.error('提交订单失败:', error);
-        alert('订单提交失败，请重试');
+        this.$message?.error('订单提交失败，请重试');
+      } finally {
+        this.isSubmitting = false;
       }
     },
 
@@ -774,6 +943,7 @@ export default {
 .checkout-page {
   padding: 20px;
   min-height: calc(100vh - 120px);
+  position: relative;
 }
 
 .checkout-container {
@@ -858,6 +1028,19 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 16px;
+  transition: border-color 0.3s;
+}
+
+.form-group input.error,
+.form-group textarea.error,
+.form-group select.error {
+  border-color: #dc3545;
+}
+
+.error-message {
+  color: #dc3545;
+  font-size: 14px;
+  margin-top: 5px;
 }
 
 .address-selector {
@@ -882,6 +1065,7 @@ export default {
   cursor: pointer;
   font-size: 14px;
   white-space: nowrap;
+  transition: background-color 0.3s;
 }
 
 .add-address-btn:hover {
@@ -908,6 +1092,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 14px;
+  transition: background-color 0.3s;
 }
 
 .edit-address-btn:hover {
@@ -1066,6 +1251,7 @@ export default {
   max-width: 500px;
   width: 90%;
   text-align: center;
+  position: relative;
 }
 
 .address-dialog {
@@ -1095,6 +1281,7 @@ export default {
   border-radius: 4px;
   cursor: pointer;
   font-size: 16px;
+  transition: background-color 0.3s;
 }
 
 .primary-btn {
@@ -1102,9 +1289,23 @@ export default {
   color: white;
 }
 
+.primary-btn:hover:not(:disabled) {
+  background-color: #0056b3;
+}
+
 .secondary-btn {
   background-color: #6c757d;
   color: white;
+}
+
+.secondary-btn:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+.primary-btn:disabled,
+.secondary-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .address-form-dialog .form-row {
@@ -1132,6 +1333,34 @@ export default {
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 14px;
+}
+
+/* 加载动画 */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007bff;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 @media (max-width: 768px) {
