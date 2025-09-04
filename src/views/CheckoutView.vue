@@ -849,11 +849,6 @@ export default {
           this.closeAddressDialog();
           await this.loadUserAddresses();
 
-          if (this.userAddresses.length > 0 && result.data) {
-            this.selectedAddressId = result.data.id;
-            this.selectedAddress = result.data;
-          }
-
           this.$message?.success(this.isEditingAddress ? '地址更新成功' : '地址创建成功');
         } else {
           this.$message?.error('地址保存失败：' + result.msg);
