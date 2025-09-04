@@ -746,6 +746,7 @@ export default {
       this.$router.push('/login');
     },
 
+    //新增收货地址操作
     openAddressDialog() {
       this.showAddressDialog = true;
       this.isEditingAddress = false;
