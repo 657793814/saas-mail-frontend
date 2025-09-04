@@ -20,7 +20,6 @@
               <label>收货地址</label>
               <div class="address-selector">
                 <select v-model="selectedAddressId" @change="onAddressChange">
-                  <option value="">新增地址</option>
                   <option
                       v-for="address in userAddresses"
                       :key="address.addressId"
