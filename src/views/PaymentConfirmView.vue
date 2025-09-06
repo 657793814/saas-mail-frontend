@@ -206,7 +206,7 @@ export default {
       this.isPaying = true;
       try {
         // 调用支付接口
-        const result = await apiRequest.post("/api/order/pay", {
+        const result = await apiRequest.post("/api/order/create_pay", {
           orderNo: this.orderInfo.orderNo,
           payType: this.selectedPayType
         });
