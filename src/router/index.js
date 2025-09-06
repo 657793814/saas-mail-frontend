@@ -45,7 +45,13 @@ const routes = [
         name: 'Register',
         component: RegisterView,
         props: true
-    }
+    },
+    {
+        path: '/payment/:orderId',
+        name: 'PaymentConfirm',
+        component: () => import('@/views/PaymentConfirmView.vue'),
+        meta: { requiresAuth: true }
+    },
 ]
 
 const router = createRouter({

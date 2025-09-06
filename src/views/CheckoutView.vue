@@ -149,78 +149,51 @@
           </div>
 
           <div class="form-section">
-            <h2>支付方式</h2>
-            <div class="payment-options">
-              <label class="payment-option">
-                <input
-                    type="radio"
-                    v-model="formData.paymentMethod"
-                    value="alipay"
-                >
-                <span>支付宝</span>
-              </label>
-
-              <label class="payment-option">
-                <input
-                    type="radio"
-                    v-model="formData.paymentMethod"
-                    value="wechat"
-                >
-                <span>微信支付</span>
-              </label>
-
-              <label class="payment-option">
-                <input
-                    type="radio"
-                    v-model="formData.paymentMethod"
-                    value="bank"
-                >
-                <span>银行卡支付</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <div class="order-summary">
-          <h2>订单信息</h2>
-          <div class="order-items">
-            <div
-                v-for="item in cartItems"
-                :key="item.skuId"
-                class="order-item"
-            >
-              <div class="item-info">
-                <span class="item-name">{{ item.title }}</span>
-                <span class="item-specs">{{ getSpecsText(item.specifications) }}</span>
-                <span class="item-quantity">x{{ item.quantity }}</span>
-              </div>
-              <div class="item-price">
-                ¥{{ (item.price * item.quantity).toFixed(2) }}
+            <h2>订单信息</h2>
+            <div class="order-items">
+              <div
+                  v-for="item in cartItems"
+                  :key="item.skuId"
+                  class="order-item"
+              >
+                <div class="item-info">
+                  <span class="item-name">{{ item.title }}</span>
+                  <span class="item-specs">{{ getSpecsText(item.specInfo) }}</span>
+                  <span class="item-quantity">数量：x{{ item.buyNum }}</span>
+                  <span class="item-quantity">优惠券：- ¥{{item.couponPrice}}</span>
+                </div>
+                <div class="item-price">
+                  单价：¥{{(item.price).toFixed(2)}}
+                </div>
               </div>
             </div>
-          </div>
 
-          <div class="order-total">
-            <div class="total-row">
-              <span>商品总价:</span>
-              <span>¥{{ totalPrice.toFixed(2) }}</span>
-            </div>
-            <div class="total-row">
-              <span>运费:</span>
-              <span>¥{{ shippingFee.toFixed(2) }}</span>
-            </div>
-            <div class="total-row final-total">
-              <span>应付总额:</span>
-              <span>¥{{ (totalPrice + shippingFee).toFixed(2) }}</span>
+            <div class="order-total">
+              <div class="total-row">
+                <span>商品总价:</span>
+                <span>¥{{ (orderCalculation ? orderCalculation.totalPrice : totalPrice).toFixed(2) }}</span>
+              </div>
+              <div class="total-row">
+                <span>运费:</span>
+                <span>¥{{ (orderCalculation ? orderCalculation.shippingPrice : shippingFee).toFixed(2) }}</span>
+              </div>
+              <div class="total-row">
+                <span>总优惠:</span>
+                <span>¥{{ (orderCalculation ? orderCalculation.couponPrice : couponPrice).toFixed(2) }}</span>
+              </div>
+              <div class="total-row final-total">
+                <span>应付总额:</span>
+                <span>¥{{ (orderCalculation ? orderCalculation.payFee : (totalPrice + shippingFee)).toFixed(2) }}</span>
+              </div>
             </div>
           </div>
 
           <button
               @click="submitOrder"
-              :disabled="isSubmitting"
+              :disabled="isSubmitting || isCalculating"
               class="submit-order-btn"
           >
-            {{ isSubmitting ? '提交中...' : '提交订单' }}
+            {{ isSubmitting ? '提交中...' : (isCalculating ? '计算中...' : '提交订单') }}
           </button>
         </div>
       </div>
@@ -414,6 +387,7 @@ export default {
         detailAddress: ''
       },
       shippingFee: 0,
+      couponPrice: 0,
       showConfirmDialog: false,
       showAddressDialog: false,
       isEditingAddress: false,
@@ -421,7 +395,10 @@ export default {
       orderNumber: '',
       isLoading: false,
       isSubmitting: false,
-      isSavingAddress: false
+      isSavingAddress: false,
+      // 新增试算相关数据
+      orderCalculation: null,
+      isCalculating: false
     }
   },
 
@@ -479,12 +456,14 @@ export default {
         if (checkoutItems) {
           this.cart = JSON.parse(checkoutItems)
           sessionStorage.removeItem('checkoutItems')
+          console.log('从 sessionStorage 加载购物车数据'+checkoutItems)
           return
         }
 
         const cartData = localStorage.getItem('shoppingCart')
         if (cartData) {
           this.cart = JSON.parse(cartData)
+          console.log('从 localStorage 加载购物车数据'+cartData)
         }
       } catch (error) {
         console.error('加载购物车数据失败:', error)
@@ -527,6 +506,9 @@ export default {
 
             // 预加载选中地址对应的省市区数据
             await this.preloadSelectedAddressData(defaultAddress);
+
+            // 加载地址后调用试算接口
+            this.calculateOrder();
           } else {
             // 用户没有收货地址，显示创建地址弹窗
             this.$nextTick(() => {
@@ -667,20 +649,24 @@ export default {
       }
     },
 
-    onAddressChange() {
+    // 地址变更时调用试算接口
+    async onAddressChange() {
       if (this.selectedAddressId) {
-        this.selectedAddress = this.userAddresses.find(addr => addr.id === this.selectedAddressId);
+        this.selectedAddress = this.userAddresses.find(addr => addr.addressId === this.selectedAddressId);
         // 当切换地址时，预加载对应的省市区数据
-        this.preloadSelectedAddressData(this.selectedAddress);
+        await this.preloadSelectedAddressData(this.selectedAddress);
+        // 地址变更后调用试算接口
+        this.calculateOrder();
       } else {
         this.selectedAddress = null;
         this.resetAddressForm();
+        this.orderCalculation = null;
       }
     },
 
     editAddress() {
       if (!this.selectedAddress) {
-          return;
+        return;
       }
       // 保存当前地址信息用于填充表单
       this.currentAddress = this.selectedAddress;
@@ -861,6 +847,45 @@ export default {
       }
     },
 
+    // 调用订单试算接口
+    async calculateOrder() {
+      if (!this.selectedAddressId || this.cartItems.length === 0) {
+        return;
+      }
+
+      this.isCalculating = true;
+      try {
+        const requestData = {
+          addressId: this.selectedAddressId,
+          groupId: 0,
+          secKillId: 0,
+          orderItems: this.cartItems.map(item => ({
+            productId: item.productId,
+            skuId: item.skuId,
+            buyNum: item.quantity
+          }))
+        };
+
+        const result = await apiRequest.post("/api/order/computer", requestData);
+
+        if (result.code === 0) {
+          this.orderCalculation = result.data;
+          // 数据映射：将试算结果中的orderItems映射为页面所需格式
+          this.cart = result.data.orderItems.map(item => ({
+            ...item,
+            quantity: item.buyNum, // 购买数量
+          }));
+        } else {
+          console.error('订单试算失败:', result.msg);
+          this.orderCalculation = null;
+        }
+      } catch (error) {
+        console.error('订单试算异常:', error);
+        this.orderCalculation = null;
+      } finally {
+        this.isCalculating = false;
+      }
+    },
 
     async submitOrder() {
       if (!this.validateForm() && !this.selectedAddressId) {
@@ -869,31 +894,25 @@ export default {
 
       this.isSubmitting = true;
       try {
+
         const orderData = {
-          items: this.cart.map(item => ({
+          addressId: this.selectedAddressId,
+          groupId: 0,
+          secKillId: 0,
+          orderItems: this.cartItems.map(item => ({
             productId: item.productId,
             skuId: item.skuId,
-            quantity: item.quantity,
-            price: item.price
-          })),
-          receiverName: this.selectedAddressId ? this.selectedAddress.receiverName : this.formData.receiverName,
-          receiverPhone: this.selectedAddressId ? this.selectedAddress.receiverPhone : this.formData.receiverPhone,
-          province: this.selectedAddressId ? this.selectedAddress.province : this.formData.province,
-          provinceId: this.selectedAddressId ? this.selectedAddress.provinceId : this.formData.provinceId,
-          city: this.selectedAddressId ? this.selectedAddress.city : this.formData.city,
-          cityId: this.selectedAddressId ? this.selectedAddress.cityId : this.formData.cityId,
-          district: this.selectedAddressId ? this.selectedAddress.district : this.formData.district,
-          districtId: this.selectedAddressId ? this.selectedAddress.districtId : this.formData.districtId,
-          detailAddress: this.selectedAddressId ? this.selectedAddress.detailAddress : this.formData.detailAddress,
-          paymentMethod: this.formData.paymentMethod,
-          totalAmount: this.totalPrice + this.shippingFee
+            buyNum: item.quantity
+          }))
         };
 
-        const result = await apiRequest.post("/api/orders", orderData);
+        const result = await apiRequest.post("/api/order/confirm", orderData);
 
         if (result.code === 0) {
-          this.orderNumber = result.data.orderNumber;
+          this.orderNumber = result.data.orderNo;
           this.showConfirmDialog = true;
+
+          this.$router.push(`/payment/${this.orderNumber}`);
 
           localStorage.removeItem('shoppingCart');
 
@@ -922,8 +941,8 @@ export default {
   },
 
   mounted() {
-    this.loadCartData()
     this.checkLoginStatus()
+    this.loadCartData()
   },
 
   watch: {
@@ -943,6 +962,7 @@ export default {
 
 .checkout-container {
   max-width: 1200px;
+  width:60%;
   margin: 0 auto;
 }
 
@@ -981,9 +1001,7 @@ export default {
 }
 
 .checkout-content {
-  display: grid;
-  grid-template-columns: 2fr 1fr;
-  gap: 30px;
+  display: block;
 }
 
 .form-section {
@@ -1109,19 +1127,6 @@ export default {
 
 .payment-option input {
   width: auto;
-}
-
-.order-summary {
-  background-color: #f8f9fa;
-  padding: 25px;
-  border-radius: 8px;
-  height: fit-content;
-}
-
-.order-summary h2 {
-  margin-bottom: 20px;
-  font-size: 20px;
-  color: #333;
 }
 
 .order-items {
